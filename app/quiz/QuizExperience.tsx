@@ -2,103 +2,124 @@
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
-import { DIRECTION_POOL, LABELS, QUESTIONS, type Question } from "./quiz-data";
+import { LABELS, QUESTIONS, type Question } from "./quiz-data";
 
 type Answers = Record<string, string | string[]>;
-type DirectionResult = { id: string; title: string; score: number; reasons: string[] };
+type DimensionKey = "analysis" | "creative" | "people" | "influence" | "structure" | "handsOn";
+type DimensionResult = { key: DimensionKey; label: string; percentage: number };
+type RoleResult = { id: string; title: string; match: number; reason: string };
 type QuizResult = {
   profile: { name: string; learningStage: string };
-  directions: DirectionResult[];
+  dimensions: DimensionResult[];
+  roles: RoleResult[];
   activityPreferences: string[];
   workValues: string[];
-  workContexts: string[];
   capabilities: string[];
-  domainInterests: string[];
   constraints: string[];
-  avoidances: string[];
-  certificates: string;
-  softPreferences: string;
-  summary: string;
-  nextAction: string;
   generatedAt: string;
 };
+
+type RoleProfile = {
+  id: string;
+  title: string;
+  weights: Record<DimensionKey, number>;
+  domainSignals: string[];
+  capabilitySignals: string[];
+};
+
+const DIMENSIONS: Array<{ key: DimensionKey; label: string }> = [
+  { key: "analysis", label: "分析研究" },
+  { key: "creative", label: "創意表達" },
+  { key: "people", label: "助人協作" },
+  { key: "influence", label: "推動影響" },
+  { key: "structure", label: "流程整理" },
+  { key: "handsOn", label: "動手實作" },
+];
+
+const ROLE_POOL: RoleProfile[] = [
+  { id: "brand-content", title: "品牌內容企劃", weights: { analysis: .18, creative: .29, people: .10, influence: .19, structure: .19, handsOn: .05 }, domainSignals: ["E1-1", "E1-3", "E1-7"], capabilitySignals: ["D1-1", "D1-5", "D1-6"] },
+  { id: "social-marketing", title: "社群行銷專員", weights: { analysis: .14, creative: .26, people: .19, influence: .25, structure: .11, handsOn: .05 }, domainSignals: ["E1-3", "E1-7"], capabilitySignals: ["D1-1", "D1-5"] },
+  { id: "project-ops", title: "專案營運專員", weights: { analysis: .18, creative: .08, people: .18, influence: .18, structure: .33, handsOn: .05 }, domainSignals: ["E1-2", "E1-3", "E1-4"], capabilitySignals: ["D1-4", "D1-6"] },
+  { id: "hr-recruiting", title: "人資／招募專員", weights: { analysis: .14, creative: .07, people: .34, influence: .18, structure: .22, handsOn: .05 }, domainSignals: ["E1-2", "E1-3"], capabilitySignals: ["D1-1", "D1-4", "D1-6"] },
+  { id: "customer-success", title: "客戶成功專員", weights: { analysis: .14, creative: .07, people: .33, influence: .22, structure: .19, handsOn: .05 }, domainSignals: ["E1-3", "E1-4"], capabilitySignals: ["D1-1", "D1-4", "D1-6"] },
+  { id: "public-relations", title: "公關企劃專員", weights: { analysis: .10, creative: .21, people: .23, influence: .27, structure: .14, handsOn: .05 }, domainSignals: ["E1-1", "E1-3", "E1-7"], capabilitySignals: ["D1-1", "D1-4", "D1-5"] },
+  { id: "event-planning", title: "活動企劃專員", weights: { analysis: .07, creative: .18, people: .20, influence: .22, structure: .25, handsOn: .08 }, domainSignals: ["E1-2", "E1-3", "E1-7"], capabilitySignals: ["D1-4", "D1-5", "D1-6"] },
+  { id: "editorial-copy", title: "編輯／文案企劃", weights: { analysis: .23, creative: .38, people: .09, influence: .08, structure: .17, handsOn: .05 }, domainSignals: ["E1-1", "E1-2", "E1-7"], capabilitySignals: ["D1-1", "D1-5"] },
+  { id: "business-development", title: "商務開發專員", weights: { analysis: .14, creative: .09, people: .25, influence: .34, structure: .13, handsOn: .05 }, domainSignals: ["E1-3", "E1-4"], capabilitySignals: ["D1-1", "D1-4", "D1-6"] },
+  { id: "training", title: "教育培訓企劃", weights: { analysis: .13, creative: .18, people: .33, influence: .13, structure: .18, handsOn: .05 }, domainSignals: ["E1-1", "E1-2"], capabilitySignals: ["D1-1", "D1-4", "D1-6"] },
+  { id: "market-research", title: "市場研究助理", weights: { analysis: .35, creative: .10, people: .20, influence: .08, structure: .22, handsOn: .05 }, domainSignals: ["E1-2", "E1-3"], capabilitySignals: ["D1-1", "D1-2", "D1-6"] },
+  { id: "operations-coordinator", title: "營運協調專員", weights: { analysis: .18, creative: .05, people: .18, influence: .11, structure: .43, handsOn: .05 }, domainSignals: ["E1-2", "E1-3", "E1-4"], capabilitySignals: ["D1-4", "D1-6"] },
+];
 
 const exclusiveOptions = new Set(["C1-5", "C2-skip", "C3-7", "D1-7", "E1-9", "F1-8"]);
 const label = (id: string) => LABELS[id] ?? id;
 const list = (answers: Answers, id: string) => Array.isArray(answers[id]) ? answers[id] as string[] : [];
 const text = (answers: Answers, id: string) => typeof answers[id] === "string" ? answers[id] as string : "";
 
-function pickDirections(answers: Answers): DirectionResult[] {
-  const score = new Map(DIRECTION_POOL.map((direction) => [direction.id, 0]));
-  const activityTag: Record<string, string> = { "A1-1": "make", "A1-2": "investigate", "A1-3": "create", "A1-4": "help", "A1-5": "lead", "A1-6": "organize" };
-  const domainTag: Record<string, string> = { "E1-1": "content", "E1-2": "social", "E1-3": "biz", "E1-4": "tech", "E1-5": "science", "E1-6": "engineering", "E1-7": "design", "E1-8": "environment" };
-  const capabilityTag: Record<string, string> = { "D1-1": "content", "D1-2": "data", "D1-3": "tech", "D1-4": "help", "D1-5": "design", "D1-6": "biz" };
-  const addByTag = (tag: string | undefined, amount: number) => {
-    if (!tag) return;
-    DIRECTION_POOL.forEach((direction) => {
-      if (direction.tags.includes(tag)) score.set(direction.id, (score.get(direction.id) ?? 0) + amount);
-    });
+function calculateDimensions(answers: Answers): DimensionResult[] {
+  const scores: Record<DimensionKey, number> = { analysis: 0, creative: 0, people: 0, influence: 0, structure: 0, handsOn: 0 };
+  const add = (key: DimensionKey | undefined, value: number) => { if (key) scores[key] += value; };
+  const activityMap: Record<string, DimensionKey> = {
+    "A1-1": "handsOn", "A1-2": "analysis", "A1-3": "creative", "A1-4": "people", "A1-5": "influence", "A1-6": "structure",
+    "A2-1": "handsOn", "A2-2": "analysis", "A2-3": "creative", "A2-4": "people", "A2-5": "influence", "A2-6": "structure",
+    "A3-1": "handsOn", "A3-2": "analysis", "A3-3": "creative", "A3-4": "people", "A3-5": "influence", "A3-6": "structure",
+    "D1-2": "analysis", "D1-3": "handsOn", "D1-4": "people", "D1-5": "creative", "D1-6": "structure",
   };
-
-  list(answers, "A1").forEach((id) => addByTag(activityTag[id], 2));
-  list(answers, "E1").forEach((id) => addByTag(domainTag[id], 2));
-  list(answers, "D1").forEach((id) => addByTag(capabilityTag[id], 1));
-  if (list(answers, "B1").includes("B1-4")) addByTag("help", 1);
-  if (list(answers, "B1").includes("B1-2")) addByTag("create", 1);
-  if (list(answers, "B1").includes("B1-3")) addByTag("lead", 1);
-
-  const activities = list(answers, "A1").filter((id) => !id.endsWith("skip")).map(label);
-  const domains = list(answers, "E1").filter((id) => id !== "E1-9").map(label);
-  const capabilities = list(answers, "D1").filter((id) => id !== "D1-7").map(label);
-  const ranked = [...score.entries()].sort((a, b) => b[1] - a[1]);
-  const selected = ranked.filter(([, value]) => value > 0).slice(0, 4);
-  const fallbacks = ["dir-product-design", "dir-research-data", "dir-content-creation"];
-
-  for (const id of fallbacks) {
-    if (selected.length >= 2) break;
-    if (!selected.some(([current]) => current === id)) selected.push([id, 0]);
-  }
-
-  return selected.slice(0, 4).map(([id, value]) => {
-    const direction = DIRECTION_POOL.find((item) => item.id === id)!;
-    return {
-      id,
-      title: direction.title,
-      score: value,
-      reasons: [
-        activities.length ? `你偏好的活動包含：${activities.slice(0, 2).join("、")}` : "活動偏好仍可繼續觀察",
-        domains.length ? `你願意接觸的題材包含：${domains.slice(0, 2).join("、")}` : "題材尚未限定，保留探索空間",
-        capabilities.length ? `目前可用的能力線索：${capabilities.slice(0, 2).join("、")}` : "先接觸實際工作，再累積能力證據",
-      ],
-    };
+  list(answers, "A1").forEach((id) => add(activityMap[id], 4));
+  list(answers, "A2").forEach((id) => add(activityMap[id], 3));
+  list(answers, "A3").forEach((id) => add(activityMap[id], 4));
+  list(answers, "D1").forEach((id) => {
+    if (id === "D1-1") { add("creative", 1); add("influence", 1); }
+    else add(activityMap[id], 2);
   });
+
+  const valueMap: Record<string, DimensionKey> = { "B1-1": "creative", "B1-2": "creative", "B1-3": "influence", "B1-4": "people", "B1-5": "structure", "B1-6": "structure" };
+  list(answers, "B1").forEach((id) => add(valueMap[id], 1));
+  const contextMap: Record<string, DimensionKey> = { "C1-1": "people", "C1-2": "analysis", "C1-3": "handsOn", "C1-4": "creative", "C2-1": "structure", "C2-2": "creative", "C2-3": "analysis", "C2-4": "analysis", "C2-5": "influence", "C2-6": "influence" };
+  [...list(answers, "C1"), ...list(answers, "C2")].forEach((id) => add(contextMap[id], 1));
+
+  const total = Object.values(scores).reduce((sum, value) => sum + value, 0);
+  const exact = DIMENSIONS.map(({ key, label: dimensionLabel }) => ({ key, label: dimensionLabel, exact: total ? (scores[key] / total) * 100 : 100 / DIMENSIONS.length }));
+  const percentages = exact.map((item) => Math.floor(item.exact));
+  let remainder = 100 - percentages.reduce((sum, value) => sum + value, 0);
+  exact.map((item, index) => ({ index, fraction: item.exact - percentages[index] })).sort((a, b) => b.fraction - a.fraction).forEach(({ index }) => {
+    if (remainder > 0) { percentages[index] += 1; remainder -= 1; }
+  });
+  return exact.map(({ key, label: dimensionLabel }, index) => ({ key, label: dimensionLabel, percentage: percentages[index] }));
+}
+
+function pickRoles(answers: Answers, dimensions: DimensionResult[]): RoleResult[] {
+  const profile = Object.fromEntries(dimensions.map((item) => [item.key, item.percentage / 100])) as Record<DimensionKey, number>;
+  const domains = list(answers, "E1");
+  const capabilities = list(answers, "D1");
+  const topDimensionLabels = [...dimensions].sort((a, b) => b.percentage - a.percentage).slice(0, 2).map((item) => item.label);
+
+  return ROLE_POOL.map((role) => {
+    const distance = DIMENSIONS.reduce((sum, { key }) => sum + Math.abs(profile[key] - role.weights[key]), 0);
+    const similarity = Math.max(0, 1 - distance / 2);
+    const domainBonus = role.domainSignals.some((id) => domains.includes(id)) ? 3 : 0;
+    const capabilityBonus = role.capabilitySignals.some((id) => capabilities.includes(id)) ? 3 : 0;
+    const match = Math.min(96, Math.max(58, Math.round(46 + similarity * 48 + domainBonus + capabilityBonus)));
+    const matchingDomain = role.domainSignals.find((id) => domains.includes(id));
+    return {
+      id: role.id,
+      title: role.title,
+      match,
+      reason: matchingDomain ? `${topDimensionLabels.join("、")}較突出，也對${label(matchingDomain)}有興趣` : `${topDimensionLabels.join("、")}是目前較突出的偏好`,
+    };
+  }).sort((a, b) => b.match - a.match).slice(0, 3);
 }
 
 function buildResult(answers: Answers): QuizResult {
-  const directions = pickDirections(answers);
-  const activityPreferences = [...list(answers, "A1"), ...list(answers, "A3")].filter((id) => !id.endsWith("skip")).map(label);
-  const workValues = list(answers, "B1").map(label);
-  const workContexts = [...list(answers, "C1").filter((id) => id !== "C1-5"), ...list(answers, "C2").filter((id) => !id.endsWith("skip"))].map(label);
-  const capabilities = list(answers, "D1").filter((id) => id !== "D1-7").map(label);
-  const domainInterests = list(answers, "E1").filter((id) => id !== "E1-9").map(label);
-  const constraints = list(answers, "F1").filter((id) => id !== "F1-8").map(label);
-  const avoidances = list(answers, "C3").filter((id) => id !== "C3-7").map(label);
-  const name = text(answers, "F3").trim();
-
+  const dimensions = calculateDimensions(answers);
   return {
-    profile: { name, learningStage: text(answers, "F4").trim() },
-    directions,
-    activityPreferences,
-    workValues,
-    workContexts,
-    capabilities,
-    domainInterests,
-    constraints,
-    avoidances,
-    certificates: text(answers, "D3").trim(),
-    softPreferences: text(answers, "F2").trim(),
-    summary: `從你的活動偏好、工作價值與想接觸的題材交叉來看，可以先把「${directions.map((item) => item.title).join("、")}」當成探索假設。這不是適合度排名，而是下一步值得靠近看看的方向。`,
-    nextAction: `找一段能在 30 分鐘內了解「${directions[0]?.title ?? "一種真實工作"}」日常的影片或文章，看完只記下：哪個畫面讓你想繼續、哪個部分讓你退縮。`,
+    profile: { name: text(answers, "F3").trim(), learningStage: text(answers, "F4").trim() },
+    dimensions,
+    roles: pickRoles(answers, dimensions),
+    activityPreferences: [...list(answers, "A1"), ...list(answers, "A3")].filter((id) => !id.endsWith("skip")).map(label),
+    workValues: list(answers, "B1").map(label),
+    capabilities: list(answers, "D1").filter((id) => id !== "D1-7").map(label),
+    constraints: list(answers, "F1").filter((id) => id !== "F1-8").map(label),
     generatedAt: new Date().toISOString(),
   };
 }
@@ -116,27 +137,20 @@ export function QuizExperience() {
     setIndex(Math.max(0, Math.min(QUESTIONS.length - 1, next)));
     requestAnimationFrame(() => stageRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
-
-  const updateChoice = (question: Question, optionId: string) => {
+  const updateChoice = (currentQuestion: Question, optionId: string) => {
     setAnswers((current) => {
-      if (question.kind === "single") return { ...current, [question.id]: [optionId] };
-      const previous = list(current, question.id);
-      if (previous.includes(optionId)) return { ...current, [question.id]: previous.filter((id) => id !== optionId) };
-      if (exclusiveOptions.has(optionId)) return { ...current, [question.id]: [optionId] };
-      const withoutExclusive = previous.filter((id) => !exclusiveOptions.has(id));
-      const next = [...withoutExclusive, optionId];
-      return { ...current, [question.id]: question.max && next.length > question.max ? next.slice(1) : next };
+      if (currentQuestion.kind === "single") return { ...current, [currentQuestion.id]: [optionId] };
+      const previous = list(current, currentQuestion.id);
+      if (previous.includes(optionId)) return { ...current, [currentQuestion.id]: previous.filter((id) => id !== optionId) };
+      if (exclusiveOptions.has(optionId)) return { ...current, [currentQuestion.id]: [optionId] };
+      const next = [...previous.filter((id) => !exclusiveOptions.has(id)), optionId];
+      return { ...current, [currentQuestion.id]: currentQuestion.max && next.length > currentQuestion.max ? next.slice(1) : next };
     });
   };
-
   const restart = () => {
-    setAnswers({});
-    setIndex(0);
-    setFinished(false);
-    setStarted(true);
+    setAnswers({}); setIndex(0); setFinished(false); setStarted(true);
     requestAnimationFrame(() => stageRef.current?.scrollIntoView({ behavior: "smooth" }));
   };
-
   const downloadResult = () => {
     if (!result) return;
     const blob = new Blob([JSON.stringify(result, null, 2)], { type: "application/json;charset=utf-8" });
@@ -152,27 +166,12 @@ export function QuizExperience() {
     return (
       <main className="quiz-landing page-shell">
         <section className="quiz-hero">
-          <div className="hero-copy">
-            <p className="eyebrow">17 QUESTIONS · ABOUT 6 MINUTES</p>
-            <h1>不是決定你適合什麼，<br /><em>是找到下一個想靠近的方向。</em></h1>
-            <p className="hero-lead">用生活裡真正會遇到的情境，整理你偏好的活動、在意的工作價值、舒服的工作方式，以及目前可用的能力線索。</p>
-            <div className="hero-actions">
-              <button className="primary-action" onClick={() => setStarted(true)}>開始 17 題 <span>→</span></button>
-              <Link className="text-link" href="/resume">我想先做履歷</Link>
-            </div>
-            <p className="memory-note"><span aria-hidden="true">✦</span> 不登入、不上傳、不保留。關閉分頁後，答案就會消失。</p>
-          </div>
-          <div className="hero-orbit" aria-hidden="true">
-            <div className="orbit-card card-a"><span>01</span><strong>我喜歡怎麼做事？</strong></div>
-            <div className="orbit-card card-b"><span>02</span><strong>我在意什麼？</strong></div>
-            <div className="orbit-card card-c"><span>03</span><strong>下一站去哪裡看看？</strong></div>
-            <div className="orbit-center"><b>17</b><small>個生活情境</small></div>
-          </div>
-        </section>
-        <section className="quiz-intro-grid" aria-label="測驗涵蓋內容">
-          <article><span>01–03</span><h2>活動偏好</h2><p>哪些動作讓你願意開始，也比較容易忘記時間。</p></article>
-          <article><span>04–09</span><h2>價值與情境</h2><p>什麼值得你投入，以及哪種工作結構比較自在。</p></article>
-          <article><span>10–17</span><h2>證據與現實</h2><p>目前做得到什麼，又有哪些條件需要先被尊重。</p></article>
+          <p className="eyebrow">17 題職涯小測驗</p>
+          <h1>找到三個<br />可以先試的職位。</h1>
+          <p>約 5 分鐘。完成後會看到偏好比例與三個文組通用職位。</p>
+          <button className="primary-action" onClick={() => setStarted(true)}>開始測驗 <span>→</span></button>
+          <Link className="text-link" href="/resume">前往履歷生成器</Link>
+          <small>不登入、不上傳，重新整理後答案即清空。</small>
         </section>
       </main>
     );
@@ -181,34 +180,45 @@ export function QuizExperience() {
   if (finished && result) {
     return (
       <main className="page-shell result-page" ref={stageRef}>
-        <section className="result-heading">
-          <p className="eyebrow">YOUR EXPLORATION MAP</p>
-          <span className="result-kicker">完成 17 題 · 這份結果不會被儲存</span>
-          <h1>{result.profile.name ? `${result.profile.name}，` : ""}先別急著選答案。<br /><em>這幾個方向值得親自去看看。</em></h1>
-          <p>{result.summary}</p>
-        </section>
-        <section className="direction-grid">
-          {result.directions.map((direction, directionIndex) => (
-            <article className={`direction-card tone-${directionIndex + 1}`} key={direction.id}>
-              <span>0{directionIndex + 1}</span>
-              <div><small>{directionIndex === 0 ? "最先浮現" : "值得探索"}</small><h2>{direction.title}</h2></div>
-              <ul>{direction.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
-            </article>
-          ))}
-        </section>
-        <section className="signals-panel">
-          <div><p className="eyebrow">SIGNALS, NOT LABELS</p><h2>你留下的線索</h2><p>這些詞比職稱更有用：之後看課程、實習或職缺時，可以拿它們逐項比對。</p></div>
-          <SignalGroup title="喜歡的活動" items={result.activityPreferences} empty="目前還說不準" />
-          <SignalGroup title="在意的價值" items={result.workValues} empty="目前還分不出來" />
-          <SignalGroup title="能力線索" items={result.capabilities} empty="等待下一次實作累積" />
-          <SignalGroup title="現實條件" items={result.constraints} empty="目前沒有硬限制" />
-        </section>
-        <section className="next-card">
-          <span>下一個 30 分鐘</span><h2>先接觸真實工作，再決定要不要靠近。</h2><p>{result.nextAction}</p>
+        <header className="result-heading">
+          <p className="eyebrow">測驗結果</p>
+          <h1>{result.profile.name ? `${result.profile.name} 的` : "你的"}職涯偏好</h1>
+          <p>匹配度代表探索方向接近程度，不是錄取機率。</p>
+        </header>
+        <div className="result-grid">
+          <section className="ratio-panel">
+            <h2>偏好比例</h2>
+            <div className="ratio-list">
+              {result.dimensions.map((dimension) => (
+                <div className="ratio-row" key={dimension.key}>
+                  <div><span>{dimension.label}</span><strong>{dimension.percentage}%</strong></div>
+                  <div className="ratio-track"><i style={{ width: `${dimension.percentage}%` }} /></div>
+                </div>
+              ))}
+            </div>
+          </section>
+          <section className="role-panel">
+            <div className="section-title"><h2>推薦職位</h2><span>文組通用</span></div>
+            <div className="role-list">
+              {result.roles.map((role, roleIndex) => (
+                <article className="role-card" key={role.id}>
+                  <span className="role-rank">0{roleIndex + 1}</span>
+                  <div><h3>{role.title}</h3><p>{role.reason}</p></div>
+                  <strong>{role.match}<small>%</small></strong>
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
+        <section className="signal-summary">
+          <h2>關鍵線索</h2>
+          <SignalGroup title="偏好活動" items={result.activityPreferences} empty="尚未選擇" />
+          <SignalGroup title="工作價值" items={result.workValues} empty="尚未選擇" />
+          <SignalGroup title="能力線索" items={result.capabilities} empty="尚未提供" />
         </section>
         <div className="result-actions">
-          <Link className="primary-action" href="/resume">把經歷整理成履歷 <span>→</span></Link>
-          <button className="secondary-action" onClick={downloadResult}>下載我的結果</button>
+          <Link className="primary-action" href="/resume">建立履歷 <span>→</span></Link>
+          <button className="secondary-action" onClick={downloadResult}>下載結果</button>
           <button className="text-link" onClick={restart}>重新測驗</button>
         </div>
       </main>
@@ -217,55 +227,24 @@ export function QuizExperience() {
 
   return (
     <main className="quiz-run page-shell" ref={stageRef}>
-      <div className="quiz-topline">
-        <div><p className="eyebrow">CAREER TOWN MINI</p><strong>{question.dimension}</strong></div>
-        <p>第 {index + 1} 題 <span>/ {QUESTIONS.length}</span></p>
-      </div>
+      <div className="quiz-topline"><strong>{question.dimension}</strong><p>{index + 1} / {QUESTIONS.length}</p></div>
       <div className="progress-track" aria-label={`測驗進度 ${index + 1} / ${QUESTIONS.length}`}><i style={{ width: `${((index + 1) / QUESTIONS.length) * 100}%` }} /></div>
-      <section className="question-layout">
-        <aside>
-          <span>0{index + 1}</span>
-          <p>{question.kind === "multi" ? `最多選 ${question.max ?? "多"} 項` : question.kind === "single" ? "請選 1 項" : question.kind === "free" ? "自由填寫 · 可留空" : "可選多個來源"}</p>
-          <small>所有問題都可以跳過。這份測驗只提供探索線索，不是能力或人格診斷。</small>
-        </aside>
-        <article className="question-card">
-          <header><span>{question.dimension}</span><h1>{question.title}</h1>{question.hint && <p>{question.hint}</p>}</header>
-          <QuestionInput question={question} answers={answers} onChoice={updateChoice} onText={(value) => setAnswers((current) => ({ ...current, [question.id]: value }))} />
-          <footer>
-            <button className="back-action" disabled={index === 0} onClick={() => goTo(index - 1)}>← 上一題</button>
-            <span>{Array.isArray(answers[question.id]) && (answers[question.id] as string[]).length ? `已選 ${(answers[question.id] as string[]).length} 項` : text(answers, question.id) ? "已填寫" : "可直接跳過"}</span>
-            <button className="next-action" onClick={() => index === QUESTIONS.length - 1 ? setFinished(true) : goTo(index + 1)}>{index === QUESTIONS.length - 1 ? "看結果" : "下一題"} →</button>
-          </footer>
-        </article>
-      </section>
+      <article className="question-card">
+        <header><span>{question.kind === "multi" ? `最多選 ${question.max ?? "多"} 項` : question.kind === "single" ? "請選 1 項" : question.kind === "free" ? "可留空" : "可複選"}</span><h1>{question.title}</h1>{question.hint && <p>{question.hint}</p>}</header>
+        <QuestionInput question={question} answers={answers} onChoice={updateChoice} onText={(value) => setAnswers((current) => ({ ...current, [question.id]: value }))} />
+        <footer><button className="back-action" disabled={index === 0} onClick={() => goTo(index - 1)}>← 上一題</button><button className="next-action" onClick={() => index === QUESTIONS.length - 1 ? setFinished(true) : goTo(index + 1)}>{index === QUESTIONS.length - 1 ? "看結果" : "下一題"} →</button></footer>
+      </article>
     </main>
   );
 }
 
 function QuestionInput({ question, answers, onChoice, onText }: { question: Question; answers: Answers; onChoice: (question: Question, optionId: string) => void; onText: (value: string) => void }) {
-  if (question.kind === "free") {
-    return <textarea className="free-input" rows={5} value={text(answers, question.id)} onChange={(event) => onText(event.target.value)} placeholder={question.placeholder} autoFocus />;
-  }
-  if (question.kind === "evidence-source" && list(answers, "D1").filter((id) => id !== "D1-7").length === 0) {
-    return <div className="skip-message"><span>↷</span><div><strong>上一題沒有選擇能力線索</strong><p>這題會自動略過，直接按「下一題」即可。</p></div></div>;
-  }
+  if (question.kind === "free") return <textarea className="free-input" rows={5} value={text(answers, question.id)} onChange={(event) => onText(event.target.value)} placeholder={question.placeholder} autoFocus />;
+  if (question.kind === "evidence-source" && list(answers, "D1").filter((id) => id !== "D1-7").length === 0) return <div className="skip-message"><strong>上一題沒有選擇能力線索</strong><p>可以直接前往下一題。</p></div>;
   const selected = list(answers, question.id);
-  return (
-    <div className="option-list">
-      {question.options?.map((option, optionIndex) => {
-        const isSelected = selected.includes(option.id);
-        return (
-          <button type="button" className={`quiz-option ${isSelected ? "selected" : ""} ${option.skip ? "skip" : ""}`} aria-pressed={isSelected} onClick={() => onChoice(question, option.id)} key={option.id}>
-            <span className="option-index">{String(optionIndex + 1).padStart(2, "0")}</span>
-            <span className="option-copy"><strong>{option.label}</strong>{option.desc && <small>{option.desc}</small>}</span>
-            <i aria-hidden="true">{isSelected ? "✓" : "+"}</i>
-          </button>
-        );
-      })}
-    </div>
-  );
+  return <div className="option-list">{question.options?.map((option) => { const isSelected = selected.includes(option.id); return <button type="button" className={`quiz-option ${isSelected ? "selected" : ""}`} aria-pressed={isSelected} onClick={() => onChoice(question, option.id)} key={option.id}><span className="option-copy"><strong>{option.label}</strong>{option.desc && <small>{option.desc}</small>}</span><i aria-hidden="true">{isSelected ? "✓" : "+"}</i></button>; })}</div>;
 }
 
 function SignalGroup({ title, items, empty }: { title: string; items: string[]; empty: string }) {
-  return <article><h3>{title}</h3><div>{items.length ? items.map((item) => <span key={item}>{item}</span>) : <span className="muted-chip">{empty}</span>}</div></article>;
+  return <div className="signal-group"><h3>{title}</h3><div>{items.length ? items.map((item) => <span key={item}>{item}</span>) : <span>{empty}</span>}</div></div>;
 }

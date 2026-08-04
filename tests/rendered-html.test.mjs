@@ -20,10 +20,12 @@ test("server-renders the quiz and resume routes", async () => {
 
   const [quizHtml, resumeHtml] = await Promise.all([quizResponse.text(), resumeResponse.text()]);
   assert.match(quizHtml, /17 題小測驗/);
-  assert.match(quizHtml, /不是決定你適合什麼/);
-  assert.match(quizHtml, /不登入、不上傳、不保留/);
+  assert.match(quizHtml, /找到三個/);
+  assert.match(quizHtml, /不登入、不上傳/);
   assert.match(resumeHtml, /履歷生成器/);
-  assert.match(resumeHtml, /把做過的事/);
+  assert.match(resumeHtml, /建立你的履歷/);
+  assert.match(resumeHtml, /實習\/工作經歷/);
+  assert.match(resumeHtml, /項目經歷/);
   assert.match(resumeHtml, /列印／儲存 PDF/);
 });
 
@@ -38,6 +40,9 @@ test("keeps exactly 17 questions and no browser persistence", async () => {
   ]);
 
   assert.equal(quizData.match(/id: "[A-F][0-9]"/g)?.length, 17);
+  assert.match(quizComponent, /slice\(0, 3\)/);
+  assert.match(quizComponent, /品牌內容企劃/);
+  assert.doesNotMatch(quizComponent, /軟體工程|技術實作/);
   assert.doesNotMatch(`${quizComponent}\n${resumeComponent}`, /localStorage|sessionStorage|indexedDB|document\.cookie/);
   assert.match(page, /redirect\("\/quiz"\)/);
   assert.doesNotMatch(layout, /codex-preview|Starter Project|_sites-preview/);
