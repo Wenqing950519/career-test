@@ -44,7 +44,8 @@ test("keeps exactly 17 questions and no browser persistence", async () => {
   assert.match(quizComponent, /品牌內容企劃/);
   assert.doesNotMatch(quizComponent, /軟體工程|技術實作/);
   assert.doesNotMatch(`${quizComponent}\n${resumeComponent}`, /localStorage|sessionStorage|indexedDB|document\.cookie/);
-  assert.match(page, /redirect\("\/quiz"\)/);
+  assert.match(page, /QuizExperience/);
+  assert.doesNotMatch(page, /redirect\(/);
   assert.doesNotMatch(layout, /codex-preview|Starter Project|_sites-preview/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
 });

@@ -1,5 +1,11 @@
-import { redirect } from "next/navigation";
+import { SiteHeader } from "./SiteHeader";
+import { QuizExperience } from "./quiz/QuizExperience";
 
 export default function Home() {
-  redirect("/quiz");
+  return (
+    <>
+      <SiteHeader active="quiz" />
+      <QuizExperience />
+    </>
+  );
 }
