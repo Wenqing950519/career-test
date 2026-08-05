@@ -9,7 +9,7 @@ export function SiteHeader({ active }: { active: "quiz" | "resume" }) {
       </Link>
       <nav className="main-nav" aria-label="主要功能">
         <Link className={active === "quiz" ? "active" : ""} href="/quiz">
-          <span>01</span> 17 題小測驗
+          <span>01</span> 15 題小測驗
         </Link>
         <Link className={active === "resume" ? "active" : ""} href="/resume">
           <span>02</span> 履歷生成器
