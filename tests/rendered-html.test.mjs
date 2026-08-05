@@ -19,7 +19,8 @@ test("server-renders the quiz and resume routes", async () => {
   assert.equal(resumeResponse.status, 200);
 
   const [quizHtml, resumeHtml] = await Promise.all([quizResponse.text(), resumeResponse.text()]);
-  assert.match(quizHtml, /17 題小測驗/);
+  assert.match(quizHtml, /15 題職涯小測驗/);
+  assert.match(quizHtml, /15 題小測驗/);
   assert.match(quizHtml, /找到三個/);
   assert.match(quizHtml, /不登入、不上傳/);
   assert.match(resumeHtml, /履歷生成器/);
@@ -29,7 +30,7 @@ test("server-renders the quiz and resume routes", async () => {
   assert.match(resumeHtml, /列印／儲存 PDF/);
 });
 
-test("keeps exactly 17 questions and no browser persistence", async () => {
+test("keeps exactly 15 localized questions and no browser persistence", async () => {
   const [quizData, quizComponent, resumeComponent, page, layout, packageJson] = await Promise.all([
     readFile(new URL("../app/quiz/quiz-data.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/quiz/QuizExperience.tsx", import.meta.url), "utf8"),
@@ -39,9 +40,13 @@ test("keeps exactly 17 questions and no browser persistence", async () => {
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
 
-  assert.equal(quizData.match(/id: "[A-F][0-9]"/g)?.length, 17);
-  assert.match(quizComponent, /slice\(0, 3\)/);
-  assert.match(quizComponent, /品牌內容企劃/);
+  assert.equal(quizData.match(/id: "[A-F][0-9]"/g)?.length, 15);
+  assert.match(quizData, /id: "C4"/);
+  assert.match(quizData, /id: "F4"[^\n]+kind: "single"/);
+  assert.doesNotMatch(quizData, /id: "(?:D3|F2|F3)"/);
+  assert.match(quizComponent, /slice\(0,\s*3\)/);
+  assert.match(quizComponent, /數位行銷企劃/);
+  assert.match(quizComponent, /數據創作者型/);
   assert.doesNotMatch(quizComponent, /軟體工程|技術實作/);
   assert.doesNotMatch(`${quizComponent}\n${resumeComponent}`, /localStorage|sessionStorage|indexedDB|document\.cookie/);
   assert.match(page, /QuizExperience/);

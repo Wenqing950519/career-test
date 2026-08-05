@@ -105,7 +105,18 @@ img { max-width: 100%; }
 .result-page { max-width: 1000px; padding-top: 34px; padding-bottom: 60px; }
 .result-heading { margin-bottom: 24px; }
 .result-heading h1 { margin: 0; font-family: var(--font-serif); font-size: clamp(34px, 10vw, 54px); font-weight: 600; letter-spacing: -.035em; }
+.result-heading h1 span { display: block; margin-top: 4px; }
 .result-heading > p:last-child { margin: 12px 0 0; color: var(--muted); font-size: 12px; }
+.personality-hero { position: relative; display: grid; min-height: 390px; margin-bottom: 14px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--personality-color) 28%, var(--line)); border-radius: 22px; background: color-mix(in srgb, var(--personality-color) 9%, var(--surface)); }
+.personality-hero::before { position: absolute; width: 240px; height: 240px; right: -80px; top: -100px; border-radius: 50%; background: color-mix(in srgb, var(--personality-color) 14%, transparent); content: ""; }
+.personality-copy { position: relative; z-index: 2; display: grid; align-content: start; gap: 12px; padding: 24px 20px 0; }
+.personality-copy > span { justify-self: start; padding: 6px 10px; border-radius: 999px; background: var(--surface); color: var(--personality-color); font-size: 10px; font-weight: 800; letter-spacing: .08em; }
+.personality-copy h2 { margin: 0; font-family: var(--font-serif); font-size: clamp(28px, 8vw, 42px); font-weight: 600; letter-spacing: -.03em; }
+.personality-copy p { max-width: 480px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.personality-copy .secondary-action { justify-self: start; margin-top: 2px; background: var(--ink); color: white; }
+.personality-copy small { color: var(--personality-color); font-size: 10px; font-weight: 700; }
+.personality-portrait { align-self: end; justify-self: center; width: min(100%, 350px); line-height: 0; }
+.personality-portrait img { display: block; width: 100%; height: auto; mix-blend-mode: multiply; }
 .result-grid { display: grid; gap: 14px; }
 .ratio-panel, .role-panel, .signal-summary { min-width: 0; padding: 20px 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
 .ratio-panel h2, .role-panel h2, .signal-summary > h2 { margin: 0; font-family: var(--font-serif); font-size: 20px; }
@@ -125,6 +136,13 @@ img { max-width: 100%; }
 .role-card p { margin: 5px 0 0; color: var(--muted); font-size: 10px; line-height: 1.45; }
 .role-card > strong { color: var(--accent); font-family: Georgia, serif; font-size: 25px; white-space: nowrap; }
 .role-card > strong small { font-size: 11px; }
+.result-role-card { align-items: start; }
+.result-role-card > div { display: grid; gap: 6px; }
+.result-role-card .role-card-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.result-role-card .role-card-heading b { color: var(--green); font-size: 10px; white-space: nowrap; }
+.result-role-card > div > p { margin: 0; }
+.result-role-card > div > small { color: var(--muted); font-size: 10px; line-height: 1.55; }
+.result-role-card a { justify-self: start; margin-top: 2px; border-bottom: 1px solid currentColor; color: var(--accent); font-size: 10px; font-weight: 750; }
 .signal-summary { display: grid; gap: 16px; margin-top: 14px; }
 .signal-group h3 { margin: 0 0 8px; font-size: 12px; }
 .signal-group > div { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -207,9 +225,12 @@ img { max-width: 100%; }
   .page-shell { padding-inline: 28px; }
   .site-header { padding-inline: 28px; }
   .result-grid { grid-template-columns: .85fr 1.15fr; align-items: stretch; }
+  .personality-hero { grid-template-columns: 1.1fr .9fr; min-height: 410px; }
+  .personality-copy { align-content: center; padding: 36px 0 36px 36px; }
+  .personality-portrait { align-self: end; width: min(100%, 410px); }
   .result-actions { grid-template-columns: auto auto 1fr; align-items: center; }
   .result-actions .text-link { justify-self: end; margin: 0; }
-  .signal-summary { grid-template-columns: repeat(3, 1fr); }
+  .signal-summary { grid-template-columns: repeat(5, 1fr); }
   .signal-summary > h2 { grid-column: 1 / -1; }
   .resume-scaler { --resume-scale: .68; }
 }
