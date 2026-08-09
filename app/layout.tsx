@@ -6,19 +6,19 @@ const ogImageUrl = `${siteUrl}/og.png`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(`${siteUrl}/`),
-  title: { default: "Career Town Mini｜職涯小鎮", template: "%s｜Career Town Mini" },
-  description: "用 17 題認識自己的工作偏好，再把經歷整理成一份清楚的履歷。所有內容只保留在當前分頁。",
+  title: { default: "你適合什麼工作？｜Career Test", template: "%s｜Career Test" },
+  description: "15 題、約 5 分鐘，測出你的職涯人格。",
   openGraph: {
-    title: "Career Town Mini｜職涯小鎮",
-    description: "先認識自己，再把故事寫成履歷。",
+    title: "你適合什麼工作？｜Career Test",
+    description: "15 題、約 5 分鐘，測出你的職涯人格。",
     type: "website",
     locale: "zh_TW",
-    images: [{ url: ogImageUrl, width: 1536, height: 1024, alt: "Career Town Mini 職涯小鎮" }],
+    images: [{ url: ogImageUrl, width: 1200, height: 630, alt: "你適合什麼工作？Career Test 職涯測驗" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Career Town Mini｜職涯小鎮",
-    description: "先認識自己，再把故事寫成履歷。",
+    title: "你適合什麼工作？｜Career Test",
+    description: "15 題、約 5 分鐘，測出你的職涯人格。",
     images: [ogImageUrl],
   },
 };

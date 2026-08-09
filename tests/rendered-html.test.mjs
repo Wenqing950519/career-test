@@ -21,8 +21,9 @@ test("server-renders the quiz and resume routes", async () => {
   const [quizHtml, resumeHtml] = await Promise.all([quizResponse.text(), resumeResponse.text()]);
   assert.match(quizHtml, /15 題職涯小測驗/);
   assert.match(quizHtml, /15 題小測驗/);
-  assert.match(quizHtml, /找到三個/);
-  assert.match(quizHtml, /不登入、不上傳/);
+  assert.match(quizHtml, /你適合/);
+  assert.match(quizHtml, /測出你的職涯人格/);
+  assert.doesNotMatch(quizHtml, /3 個可以先試的職位|免登入|答案不留存|不儲存資料/);
   assert.match(resumeHtml, /履歷生成器/);
   assert.match(resumeHtml, /建立你的履歷/);
   assert.match(resumeHtml, /實習\/工作經歷/);

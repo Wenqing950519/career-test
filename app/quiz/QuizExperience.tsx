@@ -176,10 +176,41 @@ export function QuizExperience() {
     return {...current,[currentQuestion.id]:currentQuestion.max && next.length > currentQuestion.max ? next.slice(1) : next};
   });
   const restart = () => { setAnswers({}); setIndex(0); setFinished(false); setStarted(true); setShareMessage(""); requestAnimationFrame(() => stageRef.current?.scrollIntoView({behavior:"smooth"})); };
-  const downloadResult = () => { if (!result) return; const blob = new Blob([JSON.stringify(result,null,2)],{type:"application/json;charset=utf-8"}); const url=URL.createObjectURL(blob); const anchor=document.createElement("a"); anchor.href=url; anchor.download="career-town-quiz-result.json"; anchor.click(); URL.revokeObjectURL(url); };
+  const downloadResult = () => { if (!result) return; const blob = new Blob([JSON.stringify(result,null,2)],{type:"application/json;charset=utf-8"}); const url=URL.createObjectURL(blob); const anchor=document.createElement("a"); anchor.href=url; anchor.download="career-test-result.json"; anchor.click(); URL.revokeObjectURL(url); };
   const shareResult = async () => { if (!result) return; const shareData={title:`我是${result.personality.name}`,text:`我的職涯人格是「${result.personality.name}」：${result.personality.tagline}。`,url:window.location.href}; try { if (navigator.share) await navigator.share(shareData); else { await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`); setShareMessage("結果連結已複製"); } } catch { setShareMessage(""); } };
 
-  if (!started) return <main className="quiz-landing page-shell"><section className="quiz-hero"><p className="eyebrow">15 題職涯小測驗</p><h1>找到三個<br />可以先試的職位。</h1><p>約 5 分鐘。完成後會看到你的職涯人格、六維偏好與三個適合大學生探索的台灣職位。</p><button className="primary-action" onClick={() => setStarted(true)}>開始測驗 <span>→</span></button><Link className="text-link" href="/resume">前往履歷生成器</Link><small>不登入、不上傳，重新整理後答案即清空。</small></section></main>;
+  if (!started) return (
+    <main className="quiz-landing page-shell">
+      <section className="quiz-hero">
+        <div className="quiz-hero-copy">
+          <p className="quiz-kicker"><span aria-hidden="true">✦</span> 15 題職涯小測驗 · 約 5 分鐘</p>
+          <h1>你適合<br /><em>什麼工作？</em></h1>
+          <p className="quiz-promise">測出你的職涯人格。</p>
+          <div className="quiz-hero-actions">
+            <button className="primary-action hero-start" onClick={() => setStarted(true)}>開始測驗 <span aria-hidden="true">→</span></button>
+          </div>
+        </div>
+
+        <div className="career-card-stack" aria-label="測驗可能出現的職涯人格角色">
+          <div className="orbit orbit-one" aria-hidden="true">15 種人格</div>
+          <div className="orbit orbit-two" aria-hidden="true">3 個職位</div>
+          <article className="career-card card-left">
+            <Image src="/hero-detective.webp" width={640} height={640} priority unoptimized alt="拿著放大鏡的知識偵探型角色" />
+            <span>知識偵探型</span>
+          </article>
+          <article className="career-card card-center">
+            <Image src="/hero-broadcaster.webp" width={640} height={640} priority unoptimized alt="拿著擴音器的魅力發射台型角色" />
+            <span>魅力發射台型</span>
+          </article>
+          <article className="career-card card-right">
+            <Image src="/hero-engineer.webp" width={640} height={640} priority unoptimized alt="正在組裝積木的穩定工程師型角色" />
+            <span>穩定工程師型</span>
+          </article>
+          <div className="result-ticket" aria-hidden="true"><b>你的結果</b><span>人格 + 偏好 + 職位</span></div>
+        </div>
+      </section>
+    </main>
+  );
 
   if (finished && result) return (
     <main className="page-shell result-page" ref={stageRef}>

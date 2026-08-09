@@ -70,7 +70,7 @@ export function ResumeBuilder() {
       certificates: splitLines(resume.certifications).map((name) => ({ name })),
       skills: splitLines(resume.skills).map((name) => ({ name, keywords: [] })),
       interests: resume.hobbies.split(/[、,，]/).map((name) => name.trim()).filter(Boolean).map((name) => ({ name, keywords: [] })),
-      meta: { version: "v1.0.0", generatedBy: "Career Town Mini" },
+      meta: { version: "v1.0.0", generatedBy: "Career Test" },
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
